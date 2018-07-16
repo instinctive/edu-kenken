@@ -37,21 +37,6 @@ data Puzzle = Puzzle -- {{{2
     , _cols :: Vector IntSet
     , _vals :: [(Loc,Z)]
     } deriving Show
-p2x2 :: Puzzle -- {{{3
-p2x2 = Puzzle eqns vals vals [] where
-    eqns = M.fromList $ zip "ab"
-        [ ([ (0,0),(0,1),(1,0) ],[ [1,1,2] ])
-        , ([ (1,1)             ],[ [2]     ])
-        ]
-    vals = V.replicate 2 $ S.fromList [1,2]
-
-p2x2' :: Puzzle -- {{{3
-p2x2' = Puzzle eqns vals vals [] where
-    eqns = M.fromList $ zip "ab"
-        [ ([ (0,0),(0,1) ],[ [1,2] ])
-        , ([ (1,0),(1,1) ],[ [1,2] ])
-        ]
-    vals = V.replicate 2 $ S.fromList [1,2]
 
 count :: Puzzle -> [Answer] -- {{{2
 count = flip evalState 0 . solve

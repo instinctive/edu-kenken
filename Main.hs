@@ -68,6 +68,8 @@ setValue Puzzle {..} e x@(r,c) v = modify succ >> solve p
     f eqn = Just eqn
     g = bimap (delete x) (map (delete v).filter (elem v))
 
+-- input/output -- {{{1
+
 getPuzzle :: IO Puzzle --- {{{2
 getPuzzle = do
     r <- getLine
@@ -111,13 +113,14 @@ getPuzzle = do
         two (#) = if n /= 2 then [] else
             [ [a,b] | a <- [1..sz-1], b <- [a+1..sz], a # v == b ]
 
-main :: IO () -- {{{2
+putPuzzle :: Puzzle -> IO () -- {{{2
+putPuzzle Puzzle {..} = traverse_ putStrLn soln where
+    soln = chunksOf sz $ intToDigit.snd <$> sort _vals
+    sz = V.length _rows
+
+main :: IO () -- {{{1
 main = getPuzzle >>= out . count where
     out [] = hPutStrLn stderr "IMPOSSIBLE"
-    out ((n,Puzzle {..}):_) = do
-        let sz = V.length _rows
-            pct = 100 * fromIntegral (sz*sz) / fromIntegral n
-        hPutStrLn stderr $ printf "%d decisions (%4.2f%% correct)\n" n (pct :: Double)
-        let soln = chunksOf sz $ intToDigit.snd <$> sort _vals
-        traverse_ putStrLn soln
-
+    out ((n,p):_) = do
+        hPutStrLn stderr $ printf "%d decisions" n
+        putPuzzle p

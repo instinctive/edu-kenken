@@ -1,4 +1,4 @@
--- prelude {{{2
+-- prelude {{{1
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
@@ -23,30 +23,38 @@ infixr 6 /\
 (/\) = S.intersection
 
 -- types {{{2
-
 type Z = Int
 type Eid = Char
 type Loc = (Z,Z)
 type Eqn = ([Loc],[[Z]])
-type St = State Z
-type Answer = (Z,Puzzle)
 
-data Puzzle = Puzzle -- {{{2
+data Puzzle = Puzzle -- {{{1
     { _eqns :: Map Eid Eqn
     , _rows :: Vector IntSet
     , _cols :: Vector IntSet
     , _vals :: [(Loc,Z)]
     } deriving Show
 
-count :: Puzzle -> [Answer] -- {{{2
-count = flip evalState 0 . solve
+-- solution {{{1
+solve :: Puzzle -> [Puzzle] -- {{{2
+solve = go where
+    go p = maybe done next (nextLoc p) where
+        done = [p]
+        next (x,(e,s)) = concatMap (go . setValue p e x) (S.toList s)
 
-solve :: Puzzle -> St [Answer] -- {{{2
-solve p@Puzzle {..}
-    | null cands = (:[]).(,p) <$> get
-    | otherwise = concat <$> traverse (setValue p e x) (S.toList s)
+solveCount :: Puzzle -> [(Z,Puzzle)] -- {{{2
+solveCount = flip evalState 0 . go where
+    go p = maybe done next (nextLoc p) where
+        done = (:[]).(,p) <$> get
+        next (x,(e,s)) = modify succ >>
+            concat <$> traverse (go . setValue p e x) (S.toList s)
+
+nextLoc :: Puzzle -> Maybe (Loc, (Eid,IntSet)) -- {{{2
+nextLoc Puzzle {..}
+    | null cands = Nothing
+    | otherwise = Just next
   where
-    (x,(e,s)) = minimumBy (comparing $ S.size.snd.snd) cands
+    next = minimumBy (comparing $ S.size.snd.snd) cands
     cands =
         [ (x,(e,s))
         | (e,(locs,cands)) <- M.toList _eqns
@@ -55,8 +63,8 @@ solve p@Puzzle {..}
         , let s = _rows!r /\ _cols!c /\ evals
         ]
 
-setValue :: Puzzle -> Eid -> Loc -> Z -> St [Answer] -- {{{2
-setValue Puzzle {..} e x@(r,c) v = modify succ >> solve p
+setValue :: Puzzle -> Eid -> Loc -> Z -> Puzzle -- {{{2
+setValue Puzzle {..} e x@(r,c) v = p
   where
     p = Puzzle
         { _eqns = _eqns & at e %~ (>>= f).fmap g
@@ -69,7 +77,6 @@ setValue Puzzle {..} e x@(r,c) v = modify succ >> solve p
     g = bimap (delete x) (map (delete v).filter (elem v))
 
 -- input/output -- {{{1
-
 getPuzzle :: IO Puzzle --- {{{2
 getPuzzle = do
     r <- getLine
@@ -119,7 +126,7 @@ putPuzzle Puzzle {..} = traverse_ putStrLn soln where
     sz = V.length _rows
 
 main :: IO () -- {{{1
-main = getPuzzle >>= out . count where
+main = getPuzzle >>= out . solveCount where
     out [] = hPutStrLn stderr "IMPOSSIBLE"
     out ((n,p):_) = do
         hPutStrLn stderr $ printf "%d decisions" n

@@ -60,9 +60,9 @@ nextLoc Puzzle {..}
     | S.null s   = Fail
     | otherwise  = Next e x s
   where
-    (x,(e,s)) = minimumBy (comparing $ S.size.snd.snd) cands
+    (s,(e,x)) = minimumBy (comparing $ S.size.fst) cands
     cands =
-        [ (x,(e,s))
+        [ (s,(e,x))
         | (e,(locs,cands)) <- M.toList _eqns
         , let evals = S.fromList (concat cands)
         , x@(r,c) <- locs

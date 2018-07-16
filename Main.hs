@@ -36,25 +36,31 @@ data Puzzle = Puzzle -- {{{1
     } deriving Show
 
 -- solution {{{1
+data Next = Fail | Done | Next Eid Loc IntSet
+    deriving ( Eq, Show )
+
 solve :: Puzzle -> [Puzzle] -- {{{2
 solve = go where
-    go p = maybe done next (nextLoc p) where
-        done = [p]
-        next (x,(e,s)) = concatMap (go . setValue p e x) (S.toList s)
+    go p = case nextLoc p of
+        Fail -> []
+        Done -> [p]
+        Next e x s -> concatMap (go . setValue p e x) (S.toList s)
 
 solveCount :: Puzzle -> [(Z,Puzzle)] -- {{{2
 solveCount = flip evalState 0 . go where
-    go p = maybe done next (nextLoc p) where
-        done = (:[]).(,p) <$> get
-        next (x,(e,s)) = modify succ >>
+    go p = case nextLoc p of
+        Fail -> pure []
+        Done -> (:[]).(,p) <$> get
+        Next e x s -> modify succ >>
             concat <$> traverse (go . setValue p e x) (S.toList s)
 
-nextLoc :: Puzzle -> Maybe (Loc, (Eid,IntSet)) -- {{{2
+nextLoc :: Puzzle -> Next -- {{{2
 nextLoc Puzzle {..}
-    | null cands = Nothing
-    | otherwise = Just next
+    | null cands = Done
+    | S.null s   = Fail
+    | otherwise  = Next e x s
   where
-    next = minimumBy (comparing $ S.size.snd.snd) cands
+    (x,(e,s)) = minimumBy (comparing $ S.size.snd.snd) cands
     cands =
         [ (x,(e,s))
         | (e,(locs,cands)) <- M.toList _eqns

@@ -114,15 +114,19 @@ getPuzzle = do
         n = length locs
         cands :: [[Z]]
         cands = case o of
-            '+' -> multi sum
-            '*' -> multi product
+            '+' -> multi 0 (+) (*)
+            '*' -> multi 1 (*) (^)
             '-' -> two (+)
             '/' -> two (*)
             c -> error $ "invalid operator: " ++ show c
-        multi f =
-            filter ((==v).f) . filter nondec
-            $ sequence $ replicate n [1..sz]
-        nondec xx = and $ zipWith (<=) xx (tail xx)
+        multi z (#) (##) = go [] 1 z n where
+            go xx x u n
+                | n == 0 && u == v = [xx]
+                | n == 0 = []
+                | u # (x ## n) > v = []
+                | u # (sz ## n) < v = []
+                | otherwise = concatMap f [x..sz]
+              where f i = go (i:xx) i (i#u) (n-1)
         two (#) = if n /= 2 then [] else
             [ [a,b] | a <- [1..sz-1], b <- [a+1..sz], a # v == b ]
 

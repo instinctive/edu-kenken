@@ -44,7 +44,8 @@ solve = go where
     go p = case nextLoc p of
         Fail -> []
         Done -> [p]
-        Next e x s -> concatMap (go . setValue p e x) (S.toList s)
+        Next e x s ->
+            concat $ map (go . setValue p e x) (S.toList s)
 
 solveCount :: Puzzle -> [(Z,Puzzle)] -- {{{2
 solveCount = flip evalState 0 . go where
